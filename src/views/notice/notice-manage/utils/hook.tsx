@@ -9,49 +9,47 @@ import { addDialog } from "@/components/ReDialog";
 import type { FormItemProps } from "../utils/types";
 import { useChangePage } from "@/hooks/useChangePage";
 import { getKeyList, deviceDetection } from "@pureadmin/utils";
-import { getRulesTree } from "@/router/utils";
-
 // import { getRoleList, getRoleMenu, getRoleMenuIds } from "@/api/system";
-import { menuList, menuAdd, menuById, menuDelete, menuEdit } from "@/api/authority";
-import { getAsyncRoutes } from "@/api/routes";
+import {
+  noticeList,
+  noticeAdd,
+  noticeById,
+  noticeDelete,
+  noticeEdit
+} from "@/api/notice-manage";
 import { type Ref, reactive, ref, onMounted, h, toRaw, watch } from "vue";
-import { pid } from "node:process";
 
 export function useData() {
   const form = reactive({
-    menu_name: ""
+    title: ""
   });
   const curRow = ref();
   const formRef = ref();
   const tableData = ref([]);
   const isShow = ref(false);
   const loading = ref(true);
-  const { handleSizeChange, handleCurrentChange, pagination } = useChangePage(onSearch);
+  const { handleSizeChange, handleCurrentChange, pagination } =
+    useChangePage(onSearch);
 
   const columns: TableColumnList = [
     {
-      label: "菜单名称",
-      prop: "menu_name",
-      minWidth: 200,
-      align: "left",
-      headerAlign: "center"
+      label: "编号",
+      prop: "id"
     },
     {
-      label: "菜单组件",
-      prop: "menu_url",
-      minWidth: 200
+      label: "标题",
+      prop: "title"
     },
-
+    {
+      label: "内容",
+      prop: "content"
+    },
     {
       label: "状态",
       prop: "status",
       formatter: ({ status }) => {
         return status === 1 ? "显示" : "隐藏";
       }
-    },
-    {
-      label: "排序",
-      prop: "sort"
     },
     {
       label: "创建时间",
@@ -72,15 +70,19 @@ export function useData() {
   ];
 
   function handleDelete(row) {
-    ElMessageBox.confirm(`确认要<strong>删除</strong><strong style='color:var(--el-color-primary)'>${row.menu_name}</strong>吗?`, "系统提示", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-      dangerouslyUseHTMLString: true,
-      draggable: true
-    })
+    ElMessageBox.confirm(
+      `确认要<strong>删除</strong><strong style='color:var(--el-color-primary)'>${row.title}</strong>吗?`,
+      "系统提示",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+        dangerouslyUseHTMLString: true,
+        draggable: true
+      }
+    )
       .then(() => {
-        menuDelete({
+        noticeDelete({
           id: row.id
         })
           .then(res => {
@@ -94,31 +96,15 @@ export function useData() {
       .catch(err => {});
   }
 
-  const allMenuList = ref([]);
-  const getMenuList = () => {
-    getAsyncRoutes()
-      .then(res => {
-        allMenuList.value = getRulesTree(res.data, 0, []);
-        (allMenuList.value as Array<any>).unshift({
-          id: 0,
-          menu_name: "无"
-        });
-      })
-      .catch(err => {
-        allMenuList.value = [];
-      });
-  };
-
   async function onSearch() {
     loading.value = true;
-    await menuList({
+    await noticeList({
       page: pagination.currentPage,
       page_size: pagination.pageSize,
       ...form
     })
       .then(res => {
-        console.log(res.data, getRulesTree(res.data, 0, []));
-        tableData.value = getRulesTree(res.data, 0, []);
+        tableData.value = res.data;
         pagination.total = res.total;
         loading.value = false;
       })
@@ -137,7 +123,7 @@ export function useData() {
 
   /** 获取详情 */
   // const getNoticeById = (row?: FormItemProps) => {
-  //   menuById({
+  //   noticeById({
   //     id: row.id
   //   })
   //     .then(res => {
@@ -154,13 +140,9 @@ export function useData() {
       props: {
         formInline: {
           id: row?.id,
-          menu_name: row?.menu_name || "",
-          menu_url: row?.menu_url || "",
-          sort: row?.sort || 0,
-          pid: row?.pid || 0,
-          icon: row?.icon || "",
-          status: row?.status || 1,
-          allMenuList: allMenuList.value
+          title: row?.title || "",
+          content: row?.content || "",
+          status: row?.status || 1
         }
       },
       width: "40%",
@@ -184,13 +166,10 @@ export function useData() {
             console.log("curData", curData);
             // 表单规则校验通过
             if (title === "新增") {
-              menuAdd({
-                pid: curData.pid,
-                menu_name: curData.menu_name,
-                menu_url: curData.menu_url,
-                status: curData.status,
-                icon: curData.icon,
-                sort: curData.pid
+              noticeAdd({
+                title: curData.title,
+                content: curData.content,
+                status: curData.status
               })
                 .then(res => {
                   chores();
@@ -201,14 +180,11 @@ export function useData() {
               // 实际开发先调用新增接口，再进行下面操作
             } else if (title === "编辑") {
               // 实际开发先调用修改接口，再进行下面操作
-              menuEdit({
+              noticeEdit({
                 id: curData.id,
-                pid: curData.pid,
-                menu_name: curData.menu_name,
-                menu_url: curData.menu_url,
-                status: curData.status,
-                icon: curData.icon,
-                sort: curData.pid
+                title: curData.title,
+                content: curData.content,
+                status: curData.status
               })
                 .then(res => {
                   chores();
@@ -225,7 +201,9 @@ export function useData() {
 
   onMounted(async () => {
     onSearch();
-    getMenuList();
+    // const { data } = await getRoleMenu();
+    // treeIds.value = getKeyList(data, "id");
+    // treeData.value = handleTree(data);
   });
 
   return {

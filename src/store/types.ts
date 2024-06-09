@@ -43,4 +43,5 @@ export type userType = {
   roles?: Array<string>;
   isRemembered?: boolean;
   loginDay?: number;
+  adminId?: number;
 };
